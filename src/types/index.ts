@@ -27,6 +27,7 @@ export interface UserProgress {
   viewedWordsInRound: string[]; // 当前轮次已浏览的单词ID
   starWords: string[]; // 重点学单词ID列表
   passWords: string[]; // 已掌握单词ID列表
+  coverImages: Record<string, string>; // 单词封面图 wordId → base64 data URI 或远程 URL
   lastSyncAt?: number; // 上次同步时间戳
 }
 
@@ -34,8 +35,9 @@ export interface UserProgress {
 export interface UserSettings {
   speechRate: number; // 发音语速 0.5-2.0
   speechPitch: number; // 发音音调 0.5-2.0
-  imageSource: 'bing' | 'google'; // 图片来源
+  imageSource: 'bing' | 'unsplash' | 'pexels'; // 图片搜索引擎
   dictSource: 'bing' | 'google'; // 词典来源
+  cardLayout: CardModule[]; // 卡片模块布局
 }
 
 // 学习模式状态
@@ -47,3 +49,13 @@ export interface LearningState {
 
 // 单词列表筛选类型
 export type WordListFilter = 'all' | 'star' | 'pass';
+
+// 卡片模块类型
+export type CardModuleType = 'word' | 'phonetic' | 'pos' | 'meaning' | 'etymology' | 'examples' | 'relatedWords' | 'imageButton' | 'dictButton';
+
+// 卡片模块配置
+export interface CardModule {
+  id: CardModuleType;
+  label: string;
+  enabled: boolean;
+}

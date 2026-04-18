@@ -4,7 +4,9 @@ import {
   StyleSheet, 
   TouchableOpacity, 
   ScrollView,
-  Animated
+  Animated,
+  Modal,
+  Image,
 } from 'react-native';
 import { Text } from 'react-native-paper';
 import * as Speech from 'expo-speech';
@@ -16,14 +18,21 @@ import {
   CaretLeft, 
   CaretRight, 
   SpeakerHigh,
-  ArrowClockwise
+  ArrowClockwise,
+  Images,
+  X
 } from 'phosphor-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+import CoverImageModal from '../components/common/CoverImageModal';
+import WebView from '../components/common/WebView';
+import { WordCardModule } from '../components/common/WordCardModule';
 import { useUserStore } from '../stores/userStore';
 import { getWordById } from '../data/words';
 import { colors, spacing, fontSize, shadows } from '../constants/theme';
 import { DrawerParamList } from '../navigation/AppNavigator';
 import HeaderNav, { HeaderNavContent, HEADER_HEIGHT } from '../components/common/HeaderNav';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CardModule } from '../types';
 
 type NavigationProp = DrawerNavigationProp<DrawerParamList>;
 
@@ -46,6 +55,7 @@ export default function LearningScreen() {
     getProgress,
     hasCompletedRound,
     startNewRound,
+    coverImages,
   } = useUserStore();
 
   useEffect(() => {
@@ -54,12 +64,15 @@ export default function LearningScreen() {
 
   // 导航栏毛玻璃渐变由 HeaderNav 内部自动处理，只需传递 scrollPosition
   const [scrollPosition, setScrollPosition] = useState(0);
+  const [imageUrl, setImageUrl] = useState<string | null>(null);
+  const [dictUrl, setDictUrl] = useState<string | null>(null);
 
   const currentWordId = getCurrentWordId();
   const currentWord = currentWordId ? getWordById(currentWordId) : null;
   const progress = getProgress();
   const completed = hasCompletedRound();
   const { settings } = useUserStore();
+
 
   const handleMarkStar = () => {
     if (!currentWordId) return;
@@ -98,6 +111,23 @@ export default function LearningScreen() {
 
   return (
     <View style={styles.container} testID="learning-screen">
+      {/* 封面背景图（固定在顶部，不随内容滚动） */}
+      {currentWordId && coverImages[currentWordId] ? (
+        <View style={styles.coverContainer} pointerEvents="none">
+          <Image
+            source={{ uri: coverImages[currentWordId] }}
+            style={StyleSheet.absoluteFillObject}
+            resizeMode="cover"
+          />
+          <View style={styles.coverOverlay} />
+          {/* 底部渐变，自然过渡到白色背景 */}
+          <LinearGradient
+            colors={['rgba(255,255,255,0)', '#FFFFFF']}
+            style={styles.coverGradient}
+          />
+        </View>
+      ) : null}
+
       {/* 动态导航栏 */}
       <HeaderNav 
         title="学习模式"
@@ -113,33 +143,21 @@ export default function LearningScreen() {
         extraBottomPadding={controlBarHeight + 16}
         testID="word-scroll"
       >
+        {/* 展示内容 */}
         <View style={styles.wordCard} testID="word-card">
-          <Text style={styles.wordText} testID="word-text">{currentWord.word}</Text>
-          <TouchableOpacity style={styles.phoneticContainer} onPress={handleSpeak} testID="phonetic-btn">
-            <SpeakerHigh size={20} color={colors.primary} weight="fill" />
-            <Text style={styles.phoneticText} testID="phonetic-text">{currentWord.phonetic}</Text>
-          </TouchableOpacity>
-          <Text style={styles.posText} testID="pos-text">{currentWord.pos}</Text>
-          <Text style={styles.meaningText} testID="meaning-text">{currentWord.meaning}</Text>
-          
-          {currentWord.etymology && (
-            <View style={styles.section} testID="etymology-section">
-              <Text style={styles.sectionTitle} testID="etymology-title">词根词缀</Text>
-              <Text style={styles.sectionText} testID="etymology-text">{currentWord.etymology}</Text>
-            </View>
-          )}
-          
-          {currentWord.examples && currentWord.examples.length > 0 && (
-            <View style={styles.section} testID="examples-section">
-              <Text style={styles.sectionTitle} testID="examples-title">例句</Text>
-              {currentWord.examples.map((example, index) => (
-                <View key={index} style={styles.exampleItem} testID={`example-${index}`}>
-                  <Text style={styles.exampleSentence} testID={`example-sentence-${index}`}>{example.sentence}</Text>
-                  <Text style={styles.exampleTranslation} testID={`example-translation-${index}`}>{example.translation}</Text>
-                </View>
-              ))}
-            </View>
-          )}
+          {settings.cardLayout
+            .filter((m: CardModule) => m.enabled)
+            .map((module: CardModule) => (
+              <WordCardModule
+                key={module.id}
+                module={module}
+                word={currentWord}
+                onShowImages={(url) => setImageUrl(url)}
+                onShowDict={(url) => setDictUrl(url)}
+                onSpeak={handleSpeak}
+              />
+            ))
+          }
         </View>
       </HeaderNavContent>
 
@@ -195,6 +213,36 @@ export default function LearningScreen() {
         </TouchableOpacity>
       </View>
 
+      {/* 图片模态框 — 支持点击设为封面 */}
+      <CoverImageModal
+        visible={!!imageUrl}
+        url={imageUrl ?? ''}
+        wordId={currentWordId ?? ''}
+        title={currentWord.word}
+        onClose={() => setImageUrl(null)}
+      />
+
+      {/* 字典模态框 */}
+      <Modal
+        visible={!!dictUrl}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setDictUrl(null)}
+      >
+        <View style={styles.imageModal}>
+          <View style={styles.imageModalHeader}>
+            <Text style={styles.imageModalTitle}>{currentWord.word} — 词典</Text>
+            <TouchableOpacity
+              style={styles.imageModalClose}
+              onPress={() => setDictUrl(null)}
+            >
+              <X size={20} color={colors.text} weight="bold" />
+            </TouchableOpacity>
+          </View>
+          {dictUrl ? <WebView source={{ uri: dictUrl }} style={{ flex: 1 }} startInLoadingState /> : null}
+        </View>
+      </Modal>
+
       {/* 完成轮次提示 */}
       {completed && (
         <TouchableOpacity style={styles.completeButton} onPress={startNewRound}>
@@ -233,13 +281,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     // paddingBottom 由 HeaderNavContent 的 extraBottomPadding 动态处理
   },
+  coverContainer: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 300,
+  },
+  coverGradient: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 200,
+  },
+  coverOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+  },
   wordCard: {
-    backgroundColor: colors.surface,
-    borderRadius: 24,
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.xl,
-    marginBottom: spacing.lg,
-    ...shadows.card,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.lg,
   },
   wordText: {
     fontSize: fontSize['4xl'],
@@ -419,5 +481,52 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textAlign: 'center',
     marginTop: 100,
+  },
+  imageToggleButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+    alignSelf: 'center',
+    marginTop: spacing.lg,
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    backgroundColor: 'rgba(0,122,255,0.06)',
+  },
+  imageToggleText: {
+    fontSize: fontSize.sm,
+    color: colors.primary,
+    fontWeight: '500',
+  },
+  imageModal: {
+    flex: 1,
+    backgroundColor: colors.background,
+  },
+  imageModalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
+  },
+  imageModalTitle: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    textAlign: 'center',
+    fontSize: fontSize.md,
+    fontWeight: '600',
+    color: colors.text,
+  },
+  imageModalClose: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(120,120,128,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

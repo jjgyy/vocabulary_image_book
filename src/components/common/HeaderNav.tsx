@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from 'react';
 import { View, TouchableOpacity, StyleSheet, Platform, ScrollView, ScrollViewProps, Animated } from 'react-native';
 import { Text } from 'react-native-paper';
 import { BlurView } from 'expo-blur';
-import { List } from 'phosphor-react-native';
+import { List, CaretLeft } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { colors, spacing, fontSize } from '../../constants/theme';
 
@@ -15,9 +15,13 @@ const FADE_END = 60;
 
 interface HeaderNavProps {
   title: string;
-  onMenuPress: () => void;
+  /** 根页面传 onMenuPress 显示菜单按钮，二级页面传 onBack 显示返回按钮 */
+  onMenuPress?: () => void;
+  onBack?: () => void;
   /** 当前页面滚动偏移量，用于控制毛玻璃渐现 */
   scrollY?: number;
+  /** 右侧可选操作按钮 */
+  rightAction?: { icon: React.ReactNode; onPress: () => void };
 }
 
 // 带导航栏的页面内容包装组件
@@ -53,8 +57,10 @@ export function HeaderNavContent({ children, onScrollPositionChange, extraBottom
 
 export default function HeaderNav({ 
   title, 
-  onMenuPress, 
+  onMenuPress,
+  onBack,
   scrollY = 0,
+  rightAction,
 }: HeaderNavProps) {
   const insets = useSafeAreaInsets();
   const headerHeight = HEADER_HEIGHT + insets.top;
@@ -108,14 +114,17 @@ export default function HeaderNav({
 
       {/* 导航栏内容行 */}
       <View style={styles.headerContent} testID="header-content">
-        {/* 左侧：圆形悬浮按钮 */}
+        {/* 左侧：返回按钮 or 菜单按钮 */}
         <TouchableOpacity
           style={styles.circleButton}
-          onPress={onMenuPress}
-          testID="menu-button"
+          onPress={onBack ?? onMenuPress}
+          testID={onBack ? 'back-button' : 'menu-button'}
           activeOpacity={0.7}
         >
-          <List size={18} color={colors.text} weight="regular" />
+          {onBack
+            ? <CaretLeft size={18} color={colors.text} weight="bold" />
+            : <List size={18} color={colors.text} weight="regular" />
+          }
         </TouchableOpacity>
 
         {/* 居中标题：绝对定位居中，不受左侧按钮影响 */}
@@ -125,6 +134,17 @@ export default function HeaderNav({
         >
           {title}
         </Text>
+
+        {/* 右侧可选操作按钮 */}
+        {rightAction && (
+          <TouchableOpacity
+            style={[styles.circleButton, styles.rightButton]}
+            onPress={rightAction.onPress}
+            activeOpacity={0.7}
+          >
+            {rightAction.icon}
+          </TouchableOpacity>
+        )}
       </View>
     </View>
   );
@@ -162,6 +182,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: 'rgba(120, 120, 128, 0.12)',
+  },
+  rightButton: {
+    marginLeft: 'auto',
   },
   headerTitle: {
     position: 'absolute',

@@ -8,11 +8,13 @@ interface WebViewProps {
   style?: any;
   startInLoadingState?: boolean;
   renderLoading?: () => React.ReactNode;
+  injectedJavaScript?: string;
+  onMessage?: (event: { nativeEvent: { data: string } }) => void;
 }
 
 // Web 端使用 iframe，移动端使用 react-native-webview
 export default function WebView(props: WebViewProps) {
-  const { source, style, startInLoadingState, renderLoading } = props;
+  const { source, style, startInLoadingState, renderLoading, injectedJavaScript, onMessage } = props;
   const [loading, setLoading] = React.useState(startInLoadingState);
 
   if (Platform.OS === 'web') {
@@ -35,7 +37,7 @@ export default function WebView(props: WebViewProps) {
 
   // 移动端使用原生 WebView
   const RNWebView = require('react-native-webview').WebView;
-  return <RNWebView {...props} />;
+  return <RNWebView {...props} injectedJavaScript={injectedJavaScript} onMessage={onMessage} />;
 }
 
 const styles = StyleSheet.create({

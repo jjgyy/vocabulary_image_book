@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserProgress, UserSettings } from '../types';
+import { UserProgress, UserSettings, CardModule } from '../types';
 import { getRandomWords } from '../data/words';
 
 // 获取今天的日期字符串 YYYY-MM-DD
@@ -22,6 +22,9 @@ interface UserState extends UserProgress {
   prevWord: () => void;
   startNewRound: () => void;
   updateSettings: (settings: Partial<UserSettings>) => void;
+  updateCardLayout: (layout: CardModule[]) => void;
+  setCoverImage: (wordId: string, uri: string) => void;
+  removeCoverImage: (wordId: string) => void;
   
   // Getters
   isStarWord: (wordId: string) => boolean;
@@ -31,11 +34,24 @@ interface UserState extends UserProgress {
   hasCompletedRound: () => boolean;
 }
 
+const defaultCardLayout: CardModule[] = [
+  { id: 'word',        label: '单词',   enabled: true },
+  { id: 'phonetic',    label: '音标',   enabled: true },
+  { id: 'pos',         label: '词性',   enabled: true },
+  { id: 'meaning',     label: '中文释义', enabled: true },
+  { id: 'etymology',   label: '词根词缀', enabled: true },
+  { id: 'examples',    label: '例句',   enabled: true },
+  { id: 'relatedWords', label: '关联词汇', enabled: true },
+  { id: 'imageButton', label: '单词图片', enabled: true },
+  { id: 'dictButton',  label: '查词典',  enabled: true },
+];
+
 const defaultSettings: UserSettings = {
   speechRate: 1.0,
   speechPitch: 1.0,
-  imageSource: 'bing',
+  imageSource: 'unsplash',
   dictSource: 'bing',
+  cardLayout: defaultCardLayout,
 };
 
 export const useUserStore = create<UserState>()(
@@ -47,6 +63,7 @@ export const useUserStore = create<UserState>()(
       viewedWordsInRound: [],
       starWords: [],
       passWords: [],
+      coverImages: {},
       settings: defaultSettings,
       
       // 初始化每日单词（每天第一次打开时调用）
@@ -155,6 +172,29 @@ export const useUserStore = create<UserState>()(
           settings: { ...state.settings, ...newSettings },
         }));
       },
+
+      // 更新卡片布局
+      updateCardLayout: (layout: CardModule[]) => {
+        set((state) => ({
+          settings: { ...state.settings, cardLayout: layout },
+        }));
+      },
+
+      // 设置单词封面图
+      setCoverImage: (wordId: string, uri: string) => {
+        set((state) => ({
+          coverImages: { ...state.coverImages, [wordId]: uri },
+        }));
+      },
+
+      // 移除单词封面图
+      removeCoverImage: (wordId: string) => {
+        set((state) => {
+          const next = { ...state.coverImages };
+          delete next[wordId];
+          return { coverImages: next };
+        });
+      },
       
       // 判断是否为重点学单词
       isStarWord: (wordId: string) => {
@@ -188,6 +228,39 @@ export const useUserStore = create<UserState>()(
     }),
     {
       name: 'user-storage',
+      storage: {
+        getItem: async (key) => {
+          const value = await AsyncStorage.getItem(key);
+          return value ? JSON.parse(value) : null;
+        },
+        setItem: async (key, value) => {
+          await AsyncStorage.setItem(key, JSON.stringify(value));
+        },
+        removeItem: async (key) => {
+          await AsyncStorage.removeItem(key);
+        },
+      },
+      // 从持久化数据恢复时，补全 defaultCardLayout 中有但旧数据里没有的新模块
+      merge: (persistedState: any, currentState: UserState) => {
+        const persisted = persistedState as Partial<UserState>;
+        const savedLayout: CardModule[] = persisted?.settings?.cardLayout ?? [];
+
+        // 将 defaultCardLayout 中的新模块追加到已保存布局末尾
+        const savedIds = new Set(savedLayout.map((m) => m.id));
+        const newModules = defaultCardLayout.filter((m) => !savedIds.has(m.id));
+        const mergedLayout = [...savedLayout, ...newModules];
+
+        return {
+          ...currentState,
+          ...persisted,
+          coverImages: persisted.coverImages ?? {},
+          settings: {
+            ...currentState.settings,
+            ...persisted.settings,
+            cardLayout: mergedLayout,
+          },
+        };
+      },
     }
   )
 );

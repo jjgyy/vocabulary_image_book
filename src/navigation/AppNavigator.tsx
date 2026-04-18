@@ -9,7 +9,7 @@ import {
   BookOpen, 
   List, 
   Gear, 
-  X
+  X,
 } from 'phosphor-react-native';
 import { paperTheme } from '../constants/theme';
 import { colors, spacing, fontSize } from '../constants/theme';
@@ -19,10 +19,12 @@ import LearningScreen from '../screens/LearningScreen';
 import WordListScreen from '../screens/WordListScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import WordDetailScreen from '../screens/WordDetailScreen';
+import CardLayoutScreen from '../screens/CardLayoutScreen';
 
 export type RootStackParamList = {
   Main: undefined;
   WordDetail: { wordId: string };
+  CardLayout: undefined;
 };
 
 export type DrawerParamList = {
@@ -40,9 +42,9 @@ function CustomDrawerContent(props: any) {
   const insets = useSafeAreaInsets();
   
   const menuItems = [
-    { name: 'Learning', label: '学习模式', icon: BookOpen },
-    { name: 'WordList', label: '单词列表', icon: List },
-    { name: 'Settings', label: '设置', icon: Gear },
+    { name: 'Learning',   label: '学习模式', icon: BookOpen },
+    { name: 'WordList',   label: '单词列表', icon: List },
+    { name: 'Settings',   label: '设置',     icon: Gear },
   ];
 
   return (
@@ -56,8 +58,9 @@ function CustomDrawerContent(props: any) {
 
       {/* 菜单项 */}
       <View style={styles.menuContainer}>
-        {menuItems.map((item, index) => {
-          const isActive = state.index === index;
+        {menuItems.map((item) => {
+          const activeRoute = state.routes[state.index];
+          const isActive = activeRoute?.name === item.name;
           const Icon = item.icon;
           return (
             <TouchableOpacity
@@ -142,6 +145,14 @@ export default function AppNavigator() {
               title: '单词详情',
               presentation: 'modal',
               animation: 'slide_from_bottom',
+            }}
+          />
+          <Stack.Screen
+            name="CardLayout"
+            component={CardLayoutScreen}
+            options={{
+              title: '卡片布局',
+              animation: 'slide_from_right',
             }}
           />
         </Stack.Navigator>
