@@ -15,7 +15,7 @@ import WebView from '../components/common/WebView';
 import CoverImageModal from '../components/common/CoverImageModal';
 import { WordCardModule } from '../components/common/WordCardModule';
 import { useUserStore } from '../stores/userStore';
-import { getWordById } from '../data/words';
+import { getWordByIdFromBook } from '../data/wordBooks';
 import { colors, spacing, fontSize } from '../constants/theme';
 import { RootStackParamList } from '../navigation/AppNavigator';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -28,7 +28,6 @@ export default function WordDetailScreen() {
   const navigation = useNavigation<NavigationProp>();
   const insets = useSafeAreaInsets();
   const { wordId } = route.params as { wordId: string };
-  const word = getWordById(wordId);
   
   const {
     settings,
@@ -38,6 +37,8 @@ export default function WordDetailScreen() {
     isPassWord,
     coverImages,
   } = useUserStore();
+
+  const word = getWordByIdFromBook(settings.selectedBookId, wordId);
 
   const [imageUrl, setImageUrl] = React.useState<string | null>(null);
   const [dictUrl, setDictUrl] = React.useState<string | null>(null);

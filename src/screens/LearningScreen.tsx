@@ -27,7 +27,7 @@ import CoverImageModal from '../components/common/CoverImageModal';
 import WebView from '../components/common/WebView';
 import { WordCardModule } from '../components/common/WordCardModule';
 import { useUserStore } from '../stores/userStore';
-import { getWordById } from '../data/words';
+import { getWordByIdFromBook } from '../data/wordBooks';
 import { colors, spacing, fontSize, shadows } from '../constants/theme';
 import { DrawerParamList } from '../navigation/AppNavigator';
 import HeaderNav, { HeaderNavContent, HEADER_HEIGHT } from '../components/common/HeaderNav';
@@ -57,6 +57,8 @@ export default function LearningScreen() {
     startNewRound,
     coverImages,
   } = useUserStore();
+  const settings = useUserStore(s => s.settings);
+  const bookId = settings?.selectedBookId ?? 'CET4_3';
 
   useEffect(() => {
     initializeDailyWords();
@@ -68,10 +70,9 @@ export default function LearningScreen() {
   const [dictUrl, setDictUrl] = useState<string | null>(null);
 
   const currentWordId = getCurrentWordId();
-  const currentWord = currentWordId ? getWordById(currentWordId) : null;
+  const currentWord = currentWordId && bookId ? getWordByIdFromBook(bookId, currentWordId) : null;
   const progress = getProgress();
   const completed = hasCompletedRound();
-  const { settings } = useUserStore();
 
 
   const handleMarkStar = () => {

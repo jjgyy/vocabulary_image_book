@@ -20,11 +20,13 @@ import WordListScreen from '../screens/WordListScreen';
 import SettingsScreen from '../screens/SettingsScreen';
 import WordDetailScreen from '../screens/WordDetailScreen';
 import CardLayoutScreen from '../screens/CardLayoutScreen';
+import WordBookScreen from '../screens/WordBookScreen';
 
 export type RootStackParamList = {
   Main: undefined;
   WordDetail: { wordId: string };
   CardLayout: undefined;
+  WordBook: undefined;
 };
 
 export type DrawerParamList = {
@@ -152,6 +154,14 @@ export default function AppNavigator() {
             component={CardLayoutScreen}
             options={{
               title: '卡片布局',
+              animation: 'slide_from_right',
+            }}
+          />
+          <Stack.Screen
+            name="WordBook"
+            component={WordBookScreen}
+            options={{
+              title: '选择单词书',
               animation: 'slide_from_right',
             }}
           />

@@ -27,13 +27,24 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
 
 // Mock 数据，用于编辑器预览
 const MOCK_WORD = {
+  id: 'mock',
   word: 'ephemeral',
   phonetic: '/ɪˈfem.ər.əl/',
   pos: 'adj.',
   meaning: '短暂的；朝生暮死的',
+  meaningEn: 'lasting for a very short time',
   etymology: 'epi-（在...上）+ hemer（日）→ 只活一天',
   examples: [{ sentence: 'Fame is ephemeral.', translation: '名声是短暂的。' }],
   relatedWords: ['temporary', 'transient', 'fleeting'],
+  phrases: [{ en: 'ephemeral pleasure', cn: '短暂的快乐' }],
+  synonyms: [{ pos: 'adj', meaning: '短暂的', words: ['temporary', 'transient'] }],
+  rootWords: [{ pos: 'n', words: [{ word: 'ephemera', meaning: '短命的事物' }] }],
+  examQuestions: [{
+    question: 'The beauty of a sunset is ______.',
+    choices: ['permanent', 'ephemeral', 'substantial', 'equivalent'],
+    rightIndex: 1,
+    explain: 'ephemeral 意为“短暂的”，此处形容日落的短暂之美。',
+  }],
 };
 
 // 全部模块的元数据（顺序 = 默认顺序）
@@ -42,9 +53,14 @@ const ALL_MODULE_DEFS: { id: CardModuleType; label: string }[] = [
   { id: 'phonetic',    label: '音标' },
   { id: 'pos',         label: '词性' },
   { id: 'meaning',     label: '中文释义' },
-  { id: 'etymology',   label: '词根词缀' },
+  { id: 'meaningEn',   label: '英英释义' },
+  { id: 'etymology',   label: '记忆方法' },
   { id: 'examples',    label: '例句' },
+  { id: 'phrase',      label: '短语搭配' },
+  { id: 'syno',        label: '近义词' },
+  { id: 'rootWord',    label: '同根词' },
   { id: 'relatedWords', label: '关联词汇' },
+  { id: 'exam',        label: '考试真题' },
   { id: 'imageButton', label: '单词图片' },
   { id: 'dictButton',  label: '查词典' },
 ];

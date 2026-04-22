@@ -7,6 +7,33 @@ export interface Example {
   translation: string;
 }
 
+// 短语搭配
+export interface Phrase {
+  en: string;
+  cn: string;
+}
+
+// 近义词分组
+export interface SynonymGroup {
+  pos: string;
+  meaning: string;
+  words: string[];
+}
+
+// 同根词分组
+export interface RootWordGroup {
+  pos: string;
+  words: { word: string; meaning: string }[];
+}
+
+// 考试真题
+export interface ExamQuestion {
+  question: string;
+  choices: string[];
+  rightIndex: number;
+  explain?: string;
+}
+
 // 单词数据结构
 export interface Word {
   id: string;
@@ -14,9 +41,14 @@ export interface Word {
   phonetic: string;
   pos: string; // 词性，如 n./v./adj.
   meaning: string;
-  etymology?: string; // 词根词缀
-  relatedWords?: string[]; // 关联词汇
+  meaningEn?: string; // 英英释义
+  etymology?: string; // 记忆方法（词根词缀 / remMethod）
+  relatedWords?: string[]; // 关联词汇（向后兼容）
   examples: Example[];
+  phrases?: Phrase[]; // 短语搭配
+  synonyms?: SynonymGroup[]; // 近义词
+  rootWords?: RootWordGroup[]; // 同根词
+  examQuestions?: ExamQuestion[]; // 考试真题
 }
 
 // 用户学习进度
@@ -38,6 +70,7 @@ export interface UserSettings {
   imageSource: 'bing' | 'unsplash' | 'pexels'; // 图片搜索引擎
   dictSource: 'bing' | 'google'; // 词典来源
   cardLayout: CardModule[]; // 卡片模块布局
+  selectedBookId: string; // 当前选中的单词书 ID
 }
 
 // 学习模式状态
@@ -51,7 +84,17 @@ export interface LearningState {
 export type WordListFilter = 'all' | 'star' | 'pass';
 
 // 卡片模块类型
-export type CardModuleType = 'word' | 'phonetic' | 'pos' | 'meaning' | 'etymology' | 'examples' | 'relatedWords' | 'imageButton' | 'dictButton';
+export type CardModuleType =
+  | 'word' | 'phonetic' | 'pos' | 'meaning'
+  | 'meaningEn'    // 英英释义
+  | 'etymology'    // 记忆方法
+  | 'examples'
+  | 'phrase'       // 短语搭配
+  | 'syno'         // 近义词
+  | 'rootWord'     // 同根词
+  | 'exam'         // 考试真题
+  | 'relatedWords' // 向后兼容
+  | 'imageButton' | 'dictButton';
 
 // 卡片模块配置
 export interface CardModule {

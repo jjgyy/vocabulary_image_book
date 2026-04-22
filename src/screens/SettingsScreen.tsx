@@ -5,10 +5,12 @@ import { useNavigation } from '@react-navigation/native';
 import { DrawerNavigationProp } from '@react-navigation/drawer';
 import { CompositeNavigationProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { SquaresFour, CaretRight } from 'phosphor-react-native';
+import { SquaresFour, Books, CaretRight } from 'phosphor-react-native';
 import { colors, spacing, fontSize } from '../constants/theme';
 import { DrawerParamList, RootStackParamList } from '../navigation/AppNavigator';
 import HeaderNav, { HeaderNavContent } from '../components/common/HeaderNav';
+import { useUserStore } from '../stores/userStore';
+import { WORD_BOOK_MAP } from '../data/wordBooks';
 
 type NavigationProp = CompositeNavigationProp<
   DrawerNavigationProp<DrawerParamList>,
@@ -25,8 +27,16 @@ interface MenuItem {
 export default function SettingsScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [scrollPosition, setScrollPosition] = useState(0);
+  const selectedBookId = useUserStore((s) => s.settings.selectedBookId);
+  const currentBook = WORD_BOOK_MAP[selectedBookId];
 
   const menuItems: MenuItem[] = [
+    {
+      label: '选择单词书',
+      description: currentBook?.name ?? '未选择',
+      icon: <Books size={22} color={colors.primary} weight="fill" />,
+      onPress: () => navigation.navigate('WordBook'),
+    },
     {
       label: '卡片布局',
       description: '自定义单词卡片的模块顺序与显示',

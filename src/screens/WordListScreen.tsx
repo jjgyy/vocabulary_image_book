@@ -7,7 +7,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { Star, Check, MagnifyingGlass } from 'phosphor-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useUserStore } from '../stores/userStore';
-import { getAllWords } from '../data/words';
+import { getWordsForBook } from '../data/wordBooks';
 import { Word, WordListFilter } from '../types';
 import { colors, spacing, fontSize } from '../constants/theme';
 import { DrawerParamList, RootStackParamList } from '../navigation/AppNavigator';
@@ -20,6 +20,7 @@ export default function WordListScreen() {
   const navigation = useNavigation<DrawerNavProp & StackNavProp>();
   const insets = useSafeAreaInsets();
   const { starWords, passWords } = useUserStore();
+  const selectedBookId = useUserStore(s => s.settings?.selectedBookId ?? 'CET4_3');
   const [filter, setFilter] = useState<WordListFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [scrollPosition, setScrollPosition] = useState(0);
@@ -30,7 +31,7 @@ export default function WordListScreen() {
   const statsBarHeight = STATS_BAR_HEIGHT + insets.bottom;
 
   const getFilteredWords = (): Word[] => {
-    let filtered = getAllWords();
+    let filtered = getWordsForBook(selectedBookId);
 
     // 按类型筛选
     switch (filter) {

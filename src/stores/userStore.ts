@@ -1,8 +1,27 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { UserProgress, UserSettings, CardModule } from '../types';
+import { UserProgress, UserSettings, CardModule, Word } from '../types';
 import { getRandomWords } from '../data/words';
+import { getWordsForBook, clearBookCache, getWordByIdFromBook } from '../data/wordBooks';
+
+// 默认单词书
+const DEFAULT_BOOK_ID = 'CET4_3';
+
+/** 从单词书中随机取20个，排除已掌握 */
+function getRandomWordsFromBook(bookId: string, exclude: string[]): Word[] {
+  let all: Word[];
+  try {
+    all = getWordsForBook(bookId);
+  } catch {
+    // 回退到默认数据源
+    all = getRandomWords(500, []);
+  }
+  const excludeSet = new Set(exclude);
+  const pool = all.filter(w => !excludeSet.has(w.id));
+  const shuffled = [...pool].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 20);
+}
 
 // 获取今天的日期字符串 YYYY-MM-DD
 const getTodayString = (): string => {
@@ -25,6 +44,7 @@ interface UserState extends UserProgress {
   updateCardLayout: (layout: CardModule[]) => void;
   setCoverImage: (wordId: string, uri: string) => void;
   removeCoverImage: (wordId: string) => void;
+  selectWordBook: (bookId: string) => void;
   
   // Getters
   isStarWord: (wordId: string) => boolean;
@@ -39,9 +59,14 @@ const defaultCardLayout: CardModule[] = [
   { id: 'phonetic',    label: '音标',   enabled: true },
   { id: 'pos',         label: '词性',   enabled: true },
   { id: 'meaning',     label: '中文释义', enabled: true },
-  { id: 'etymology',   label: '词根词缀', enabled: true },
+  { id: 'meaningEn',   label: '英英释义', enabled: false },
+  { id: 'etymology',   label: '记忆方法', enabled: true },
   { id: 'examples',    label: '例句',   enabled: true },
+  { id: 'phrase',      label: '短语搭配', enabled: false },
+  { id: 'syno',        label: '近义词', enabled: false },
+  { id: 'rootWord',    label: '同根词', enabled: false },
   { id: 'relatedWords', label: '关联词汇', enabled: true },
+  { id: 'exam',        label: '考试真题', enabled: false },
   { id: 'imageButton', label: '单词图片', enabled: true },
   { id: 'dictButton',  label: '查词典',  enabled: true },
 ];
@@ -52,6 +77,7 @@ const defaultSettings: UserSettings = {
   imageSource: 'unsplash',
   dictSource: 'bing',
   cardLayout: defaultCardLayout,
+  selectedBookId: DEFAULT_BOOK_ID,
 };
 
 export const useUserStore = create<UserState>()(
@@ -70,20 +96,22 @@ export const useUserStore = create<UserState>()(
       initializeDailyWords: () => {
         const today = getTodayString();
         const state = get();
+        const bookId = state.settings.selectedBookId ?? DEFAULT_BOOK_ID;
         
-        // 如果今天已经初始化过，就不重新随机
+        // 如果今天已经初始化过，验证当前单词是否在词书中存在
         if (state.currentRoundDate === today && state.currentRoundWords.length > 0) {
-          return;
+          const firstId = state.currentRoundWords[0];
+          const found = getWordByIdFromBook(bookId, firstId);
+          if (found) return; // 数据匹配，无需重新抽词
         }
         
-        // 随机20个单词，排除已掌握的
-        const newWords = getRandomWords(20, state.passWords);
+        const newWords = getRandomWordsFromBook(bookId, state.passWords);
         const wordIds = newWords.map(w => w.id);
         
         set({
           currentRoundDate: today,
           currentRoundWords: wordIds,
-          viewedWordsInRound: wordIds.length > 0 ? [wordIds[0]] : [], // 默认浏览第一个
+          viewedWordsInRound: wordIds.length > 0 ? [wordIds[0]] : [],
         });
       },
       
@@ -157,7 +185,8 @@ export const useUserStore = create<UserState>()(
       // 开始新一轮
       startNewRound: () => {
         const state = get();
-        const newWords = getRandomWords(20, state.passWords);
+        const bookId = state.settings.selectedBookId ?? DEFAULT_BOOK_ID;
+        const newWords = getRandomWordsFromBook(bookId, state.passWords);
         const wordIds = newWords.map(w => w.id);
         
         set({
@@ -194,6 +223,20 @@ export const useUserStore = create<UserState>()(
           delete next[wordId];
           return { coverImages: next };
         });
+      },
+
+      // 切换单词书：更新设置并重置当前轮次
+      selectWordBook: (bookId: string) => {
+        const state = get();
+        clearBookCache(); // 清除缓存，强制重新加载
+        const newWords = getRandomWordsFromBook(bookId, state.passWords);
+        const wordIds = newWords.map(w => w.id);
+        set((s) => ({
+          settings: { ...s.settings, selectedBookId: bookId },
+          currentRoundDate: getTodayString(),
+          currentRoundWords: wordIds,
+          viewedWordsInRound: wordIds.length > 0 ? [wordIds[0]] : [],
+        }));
       },
       
       // 判断是否为重点学单词
